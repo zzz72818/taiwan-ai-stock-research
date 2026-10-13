@@ -1,0 +1,6 @@
+.env
+data/
+reports/
+finmind-probe.json
+__pycache__/
+.venv/
