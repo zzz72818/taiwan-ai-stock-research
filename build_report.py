@@ -2,13 +2,16 @@
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 from strategy import analyze
+from workflow import evaluate
 
 WATCHLIST = {'2330': '台積電', '2382': '廣達', '6669': '緯穎', '3017': '奇鋐'}
 
 
 def main():
     stocks = []
+    as_of = datetime.now(ZoneInfo('Asia/Taipei')).date().isoformat()
     for symbol, name in WATCHLIST.items():
         path = Path('data') / f'{symbol}.json'
         try:
@@ -18,7 +21,9 @@ def main():
             rows = sorted(payload['data'], key=lambda b: b['date'])
             if len({b['date'] for b in rows}) != len(rows):
                 raise ValueError('日期重複')
-            stocks.append(dict(symbol=symbol, name=name, bars=analyze(rows),
+            analyzed = analyze(rows)
+            stocks.append(dict(symbol=symbol, name=name, bars=analyzed,
+                               assessment=evaluate(analyzed[-1], as_of),
                                fetched=datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat()))
         except (OSError, ValueError, KeyError) as error:
             stocks.append(dict(symbol=symbol, name=name, error=str(error)))
@@ -27,13 +32,16 @@ def main():
     Path('reports').mkdir(exist_ok=True)
     output = Path('reports/entry-dashboard.html')
     output.write_text(content, encoding='utf-8')
+    Path('reports/signals.json').write_text(json.dumps([
+        {k: v for k, v in stock.items() if k != 'bars'} for stock in stocks
+    ], ensure_ascii=False, indent=2), encoding='utf-8')
     for stock in stocks:
         if 'error' in stock:
             print(stock['symbol'], stock['error'])
         else:
             last = stock['bars'][-1]
             print(stock['symbol'], last['date'], 'bars=', len(stock['bars']),
-                  'close=', last['close'], 'candidate=', last['signal'])
+                  'close=', last['close'], 'status=', stock['assessment']['status'])
     print(output.resolve())
 
 
