@@ -1,5 +1,6 @@
 """Deterministic research workflow inspired by TradingAgents' role separation."""
 from datetime import date
+from strategy import VOLUME_RATIO, BREAKOUT_BUFFER, MAX_CONSOLIDATION_RANGE
 
 
 def evaluate(bar, as_of, max_age_days=5, max_atr_ratio=0.06):
@@ -7,13 +8,14 @@ def evaluate(bar, as_of, max_age_days=5, max_atr_ratio=0.06):
     if close <= 0:
         raise ValueError('Close must be positive')
     age = (date.fromisoformat(as_of) - date.fromisoformat(bar['date'])).days
-    ready = all(bar.get(k) is not None for k in ('ma20', 'ma60', 'breakout', 'volume_ratio', 'atr'))
+    ready = all(bar.get(k) is not None for k in ('ma20', 'ma60', 'breakout', 'volume_ratio', 'atr', 'consolidation_range'))
     definitions = [
         ('歷史暖機', ready, '至少 60 筆日線與有效指標'),
         ('均線趨勢', ready and bar['ma20'] > bar['ma60'], 'MA20 > MA60'),
         ('價格趨勢', ready and close > bar['ma20'], '收盤 > MA20'),
-        ('前高突破', ready and close > bar['breakout'], '收盤 > 前 20 日最高價'),
-        ('成交量確認', ready and bar['volume_ratio'] >= 1.2, '量比 >= 1.2'),
+        ('盤整確認', ready and bar['consolidation_range'] <= MAX_CONSOLIDATION_RANGE, '前 20 日振幅／均價 <= 12%'),
+        ('前高突破', ready and close > bar['breakout'] * (1 + BREAKOUT_BUFFER), '收盤 > 前 20 日最高價 × 1.005'),
+        ('成交量確認', ready and bar['volume_ratio'] >= VOLUME_RATIO, '量比 >= 1.5'),
     ]
     checks = [dict(name=name, passed=bool(passed), rule=rule) for name, passed, rule in definitions]
     atr_ratio = bar['atr'] / close if ready else None
@@ -40,4 +42,6 @@ def evaluate(bar, as_of, max_age_days=5, max_atr_ratio=0.06):
                 atr_ratio=atr_ratio, risks=risks,
                 manual_review=['重大公告與隔夜消息', '除權息或停牌', '隔日跳空與可接受價格', '停損、資金與部位'],
                 missing_inputs=['新聞', '財報', '實際持倉'],
-                parameters=dict(volume_ratio=1.2, max_age_days=max_age_days, max_atr_ratio=max_atr_ratio))
+                parameters=dict(volume_ratio=VOLUME_RATIO, breakout_buffer=BREAKOUT_BUFFER,
+                                consolidation_range=MAX_CONSOLIDATION_RANGE,
+                                max_age_days=max_age_days, max_atr_ratio=max_atr_ratio))

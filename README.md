@@ -14,7 +14,7 @@ python -m unittest discover -s tests -v
 
 以瀏覽器開啟 `reports/entry-dashboard.html`，切換股票、資料範圍與查看游標數據。若 python 指令不可用，改成實際 Python 執行檔完整路徑。
 
-資料來源：[FinMind API](https://finmind.github.io/quickstart/)。可選擇以 FINMIND_TOKEN 環境變數設定自己的 token；請勿寫入程式碼。抓取與報告產生是手動執行，不會自動更新，也不是盤中行情。
+資料來源：[FinMind API](https://finmind.github.io/quickstart/)。可選擇以 FINMIND_TOKEN 環境變數設定自己的 token；請勿寫入程式碼。上述下載／報告指令是單次執行，啟動下方 monitor.py 才會持續更新；來源不是盤中行情。
 
 ## 研究規則
 
@@ -26,7 +26,21 @@ python -m unittest discover -s tests -v
 
 初始風險門檻：距資料日超過 5 個日曆日則待更新；ATR14／收盤超過 6% 則暫緩。這些門檻尚未回測，日曆間隔不取代交易日完整性驗證。分析日期採台灣日期，舊報告跨日會提示重新產生。新聞、財報、持倉未接入，需人工複核，候選不等於已核准下單。
 
-收盤突破前 20 日最高價、收盤高於 MA20、MA20 高於 MA60、成交量為前 20 日均量至少 1.2 倍。先暖機 60 筆。訊號只能作為下一交易日的待確認候選，不代表當日成交。圖表同時顯示含當日的下一次觀察門檻。
+前 20 日最高最低差／平均收盤不超過 12%（盤整），收盤超過前 20 日最高價 0.5%，收盤高於 MA20、MA20 高於 MA60、成交量為前 20 日均量至少 1.5 倍。先暖機 60 筆。訊號只能作為下一交易日的待確認候選，不代表當日成交。圖表同時顯示含當日的下一次觀察門檻。
+
+## 持續追蹤
+
+```powershell
+python monitor.py
+```
+
+開啟 http://127.0.0.1:8765/entry-dashboard.html 。每 15 分鐘查詢四檔日線，頁面每 60 秒重新載入；僅監控程序運行時持續更新，Ctrl+C 停止。電腦休眠或關機時停止，未建立自動啟動服務。
+
+Windows 背景啟動可用 `powershell -ExecutionPolicy Bypass -File scripts/start-monitor.ps1 -PythonPath "你的 python.exe 完整路徑"`；停止用 `powershell -ExecutionPolicy Bypass -File scripts/stop-monitor.ps1`。程式輸出保存於 `reports/monitor.log`，錯誤於 `reports/monitor-error.log`。啟動後請檢查頁面最近查詢時間與日誌，不把程序啟動訊息當作資料成功保證。
+
+這是「收盤確認」策略，不是即時盤中行情。台灣時間 18:00 前排除當日日線，避免未完成資料影響訊號；18:00 是保守截點，不是來源發布保證。每次顯示來源最新日與實際分析資料日。盤中即時突破監控仍需額外行情來源。
+
+單次更新用 `python monitor.py --once`；輪詢頻率可用 `--interval 900` 設定，最少 60 秒。資料錯誤時保留舊快取但阻止候選狀態，畫面顯示更新失敗。`reports/events.jsonl` 保存首次觀察與資料日／狀態變化，同一日同狀態不重複記錄，`reports/monitor-state.json` 保存最新抓取狀態。事件是歷史觀察，不能作為當前進場許可。
 
 原始價格尚未調整除權息；規則尚未完成績效回測、價格區間、停損、資金與風險設定。資料新鮮度以圖上日期為準。第一版不實際下單。
 

@@ -33,6 +33,19 @@ class StrategyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             analyze(bars)
 
+    def test_wide_range_is_not_consolidation(self):
+        bars = self.bars()
+        bars[-10]['min'] = 70
+        bars[-1].update(close=105, max=106, Trading_Volume=2000)
+        self.assertFalse(analyze(bars)[-1]['signal'])
+
+    def test_small_breakout_and_weak_volume_rejected(self):
+        bars = self.bars()
+        bars[-1].update(close=101.2, max=102, Trading_Volume=2000)
+        self.assertFalse(analyze(bars)[-1]['signal'])
+        bars[-1].update(close=105, max=106, Trading_Volume=1400)
+        self.assertFalse(analyze(bars)[-1]['signal'])
+
 
 if __name__ == '__main__':
     unittest.main()

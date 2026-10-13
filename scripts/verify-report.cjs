@@ -8,12 +8,14 @@ const { chromium } = require('playwright');
     page.on('pageerror', e => errors.push(e.message));
     const { pathToFileURL } = require('url');
     const path = require('path');
-    await page.goto(pathToFileURL(path.resolve('reports/entry-dashboard.html')).href);
+    await page.goto(process.env.REPORT_URL || pathToFileURL(path.resolve('reports/entry-dashboard.html')).href);
     for (const symbol of ['2330', '2382', '6669', '3017']) {
       await page.getByRole('button', { name: new RegExp(symbol) }).click();
       if (await page.locator('svg').count() !== 1) throw Error('Chart missing: ' + symbol);
-      if (await page.locator('#workflow tbody tr').count() !== 6) throw Error('Rule checklist missing: ' + symbol);
+      if (await page.locator('#workflow > table').first().locator('tr').count() !== 7) throw Error('Rule checklist missing: ' + symbol);
       if (!(await page.locator('#workflow').innerText()).includes('風險檢查')) throw Error('Risk section missing');
+      if (!(await page.locator('#workflow').innerText()).includes('盤整後放量突破數值')) throw Error('Breakout details missing');
+      if (!(await page.locator('#workflow').innerText()).includes('持續追蹤狀態')) throw Error('Monitor state missing');
     }
     await page.locator('select').selectOption('9999');
     await page.getByRole('button', { name: /2330/ }).click();
