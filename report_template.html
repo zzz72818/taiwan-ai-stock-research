@@ -21,6 +21,9 @@ const maxVol=Math.max(...bars.map(b=>b.Trading_Volume),1);bars.forEach((b,i)=>{s
 const baseRender=render;
 render=function(){baseRender();const s=stocks[selected];if(s.error)return;
 const panel=document.querySelector('#workflow'),a=s.assessment;
+const live=s.intraday;
+panel.insertAdjacentHTML('beforeend',`<h3>盤中追蹤</h3><p>${live?.status||'盘中行情未接入'}${live?.price!=null?'｜報價 '+fmt(live.price)+' 元':''}</p><small id="live-details"></small><p>盤中候選不是收盤確認訊號；沒有真實行情來源時不判定即時進場。</p>`);
+document.querySelector('#live-details').textContent=live?.source?`來源：${live.source}；報價時間：${live.timestamp}；${live.simulated?'示範資料；':''}累計成交量／完整日均量：${fmt(live.volume_ratio)} 倍（非同時段量比）`:'尚未開通並接入行情 API。日線追蹤仍運作。';
 panel.insertAdjacentHTML('beforeend',`<h3>盤整後放量突破數值</h3><table><tr><td>前 20 日盤整振幅／均價</td><td>${fmt(s.bars.at(-1).consolidation_range*100)}%（上限 12%）</td></tr><tr><td>收盤突破確認線</td><td>${fmt(s.bars.at(-1).breakout*1.005)} 元（需超過）</td></tr><tr><td>下次觀察門檻含突破緩衝</td><td>${fmt(s.bars.at(-1).next_trigger*1.005)} 元</td></tr></table><h3>持續追蹤狀態</h3><p>${s.monitor?`最近查詢：${s.monitor.checked_at}；${s.monitor.success?'更新成功':'更新失敗，舊快取不可作進場依據'}；來源最新日：${s.monitor.source_latest_date||'未知'}`:'尚未啟動 monitor.py；此頁為手動產生的快照'}</p><small>程序預設每 15 分鐘查詢，頁面每 60 秒重載。日線來源無法確認盤中即時突破；18:00 前排除當日日線。</small><h3>狀態變化紀錄</h3><table><tr><th>查詢時間</th><th>資料日</th><th>觀察狀態</th></tr>${(s.events||[]).slice().reverse().map(e=>`<tr><td>${e.checked_at}</td><td>${e.data_date||'—'}</td><td>${e.status}</td></tr>`).join('')||'<tr><td colspan="3">尚無追蹤事件</td></tr>'}</table><small>歷史事件不是當前下單許可。</small>`);
 };
 document.querySelector('#range').onchange=render;render();

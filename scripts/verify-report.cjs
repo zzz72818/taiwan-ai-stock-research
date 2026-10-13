@@ -16,6 +16,7 @@ const { chromium } = require('playwright');
       if (!(await page.locator('#workflow').innerText()).includes('風險檢查')) throw Error('Risk section missing');
       if (!(await page.locator('#workflow').innerText()).includes('盤整後放量突破數值')) throw Error('Breakout details missing');
       if (!(await page.locator('#workflow').innerText()).includes('持續追蹤狀態')) throw Error('Monitor state missing');
+      if (!(await page.locator('#workflow').innerText()).includes('盤中行情未接入')) throw Error('Unconnected live source must be explicit');
     }
     await page.locator('select').selectOption('9999');
     await page.getByRole('button', { name: /2330/ }).click();

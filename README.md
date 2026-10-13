@@ -42,6 +42,12 @@ Windows 背景啟動可用 `powershell -ExecutionPolicy Bypass -File scripts/sta
 
 單次更新用 `python monitor.py --once`；輪詢頻率可用 `--interval 900` 設定，最少 60 秒。資料錯誤時保留舊快取但阻止候選狀態，畫面顯示更新失敗。`reports/events.jsonl` 保存首次觀察與資料日／狀態變化，同一日同狀態不重複記錄，`reports/monitor-state.json` 保存最新抓取狀態。事件是歷史觀察，不能作為當前進場許可。
 
+### 盤中來源狀態
+
+尚未開通行情服務，因此真實盘中追蹤未完成。已提供 `intraday.evaluate_quote` 判斷介面；`data/intraday-quotes.json` 可由有權限的來源 adapter 寫入。頂層以股票代號為 key，每筆必須有 symbol、timestamp（含時區）、price、open、high、low、volume_shares（當日累計股數）、source、simulated（布林）。本專案目前不附已連線的 adapter，也不自動開戶或訂閱。
+
+盤中判斷拒絕超過 120 秒、未來時間、股票不符及當日未完成歷史資料；台灣普通時段之外不判定。成交量使用累計量／前 20 日完整日均量，沒有同時段歷史資料時不推估同時段量比。候選需收盤確認，無交易許可。正式交易日、盤中風控與真实行情接入仍需驗證。
+
 原始價格尚未調整除權息；規則尚未完成績效回測、價格區間、停損、資金與風險設定。資料新鮮度以圖上日期為準。第一版不實際下單。
 
 ## GitHub

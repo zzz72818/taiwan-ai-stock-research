@@ -14,13 +14,14 @@ from zoneinfo import ZoneInfo
 from strategy import analyze
 from workflow import evaluate
 from build_report import WATCHLIST
+from file_io import replace_with_retry
 
 
 def atomic_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix('.tmp')
     temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2), encoding='utf-8')
-    temporary.replace(path)
+    replace_with_retry(temporary, path)
 
 
 def fetch_data(symbol):

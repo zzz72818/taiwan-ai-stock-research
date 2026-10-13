@@ -3,10 +3,24 @@ import unittest
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from monitor import refresh
+from monitor import refresh, atomic_json
+from unittest.mock import patch
 
 
 class MonitorTests(unittest.TestCase):
+    def test_transient_file_lock_is_retried(self):
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parent.parent) as tmp:
+            original = Path.replace
+            attempts = []
+            def replace(path, target):
+                attempts.append(target)
+                if len(attempts) == 1:
+                    raise PermissionError('temporary lock')
+                return original(path, target)
+            with patch.object(Path, 'replace', replace):
+                atomic_json(Path(tmp) / 'state.json', {'success': True})
+            self.assertEqual(len(attempts), 2)
+
     def payload(self):
         from datetime import date, timedelta
         rows = [dict(date=(date(2026, 7, 1)+timedelta(days=i)).isoformat(),
